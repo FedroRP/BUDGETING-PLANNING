@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BUDGETING RAYA 2027 - Worldwhite Enterprise</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .animate-fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Modal Animation */
+        .modal-enter-active { animation: modalFadeIn 0.2s ease-out forwards; }
+        @keyframes modalFadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useCallback } = React;
+
+        // --- ICON COMPONENTS ---
+        const IconWrapper = ({ children, size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                {children}
+            </svg>
+        );
+
+        const Icons = {
+            Wallet: (props) => <IconWrapper {...props}><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></IconWrapper>,
+            CheckCircle: (props) => <IconWrapper {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></IconWrapper>,
+            AlertOctagon: (props) => <IconWrapper {...props}><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></IconWrapper>,
+            Coins: (props) => <IconWrapper {...props}><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7 .71-2.82 2.82"/></IconWrapper>,
+            Save: (props) => <IconWrapper {...props}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></IconWrapper>,
+            Trash2: (props) => <IconWrapper {...props}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></IconWrapper>,
+            X: (props) => <IconWrapper {...props}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></IconWrapper>,
+            Edit: (props) => <IconWrapper {...props}><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></IconWrapper>,
+            WarningCircle: (props) => <IconWrapper {...props}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></IconWrapper>,
+            Download: (props) => <IconWrapper {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></IconWrapper>,
+            AlertTriangle: (props) => <IconWrapper {...props}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></IconWrapper>
+        };
+
+        // --- CONFIGURATION ---
+        const SERIES_CONFIG = [
+            { id: 1, name: "Series 1" },
+            { id: 2, name: "Series 2" },
+            { id: 3, name: "Series 3" },
+            { id: 4, name: "Series 4" },
+            { id: 5, name: "Series 5" }
+        ];
+
+        const BUDGET_BRANDS = [
+            "HEYMALE", "HEYLOCAL", "SHUWA MODEST", "BOONABOO",
+            "LADY FIT", "PREPPSTUDIO", "ZOMA BASIC", "ANSHARIYA"
+        ];
+
+        // --- HELPER FUNCTIONS ---
+        const formatDate = (dateStr) => {
+            if (!dateStr) return "-";
+            const options = { day: 'numeric', month: 'short', year: '2-digit' };
+            return new Date(dateStr).toLocaleDateString('id-ID', options);
+        };
+
+        const addDays = (dateStr, days) => {
+            const result = new Date(dateStr);
+            result.setDate(result.getDate() + days);
+            return result.toISOString().split('T')[0];
+        };
+
+        const subtractDays = (dateStr, days) => {
+            const result = new Date(dateStr);
+            result.setDate(result.getDate() - days);
+            return result.toISOString().split('T')[0];
+        };
+
+        const formatRupiah = (val) => {
+            const number = parseFloat(val);
+            if (val === null || val === undefined || isNaN(number)) return "Rp0";
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(number);
+        };
+
+        const downloadTableAsCSV = (data, filename) => {
+            const csvRows = [];
+            const headers = Object.keys(data[0]);
+            csvRows.push(headers.join(','));
+
+            for (const row of data) {
+                const values = headers.map(header => {
+                    const escaped = ('' + row[header]).replace(/"/g, '\\"');
+                    return `"${escaped}"`;
+                });
+                csvRows.push(values.join(','));
+            }
+
+            const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', filename);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        };
+
+        // --- MODALS ---
+        const ConfirmationModal = React.memo(({ config, onConfirm, onCancel }) => {
+            if (!config.isOpen) return null;
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-opacity modal-enter-active">
+                    <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 transform transition-all scale-100">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 bg-rose-100 text-rose-600 rounded-full"><Icons.AlertTriangle size={24} /></div>
+                            <h3 className="text-lg font-bold text-slate-800">Konfirmasi</h3>
+                        </div>
+                        <p className="text-slate-600 mb-6">{config.message}</p>
+                        <div className="flex justify-end gap-3">
+                            <button onClick={onCancel} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Batal</button>
+                            <button onClick={onConfirm} className="px-4 py-2 text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-sm transition-colors">Ya, Lanjutkan</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        });
+
+        const EditBudgetModal = ({ config, onClose, onSave, onChange }) => {
+            if (!config.isOpen) return null;
+            const { data: budgetData } = config;
+            return (
+                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-opacity modal-enter-active">
+                    <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 transform transition-all scale-100">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-bold text-slate-800">Edit Budget</h3>
+                            <button onClick={onClose}><Icons.X size={20} className="text-slate-400 hover:text-slate-600"/></button>
+                        </div>
+                        <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
+                             <div className="grid grid-cols-2 gap-4">
+                                <div><label className="block text-xs font-medium text-slate-500 mb-1">No. PO</label><input type="text" className="w-full p-2 border border-slate-300 rounded-md text-sm" value={budgetData.poNumber} onChange={(e) => onChange('poNumber', e.target.value)} /></div>
+                                <div><label className="block text-xs font-medium text-slate-500 mb-1">Custom Date</label><input type="date" className="w-full p-2 border border-slate-300 rounded-md text-sm" value={budgetData.date} onChange={(e) => onChange('date', e.target.value)} /></div>
+                             </div>
+                             <div className="grid grid-cols-2 gap-4">
+                                <div><label className="block text-xs font-medium text-slate-500 mb-1">Article Name</label><input type="text" className="w-full p-2 border border-slate-300 rounded-md text-sm" value={budgetData.article} onChange={(e) => onChange('article', e.target.value)} /></div>
+                                <div><label className="block text-xs font-medium text-slate-500 mb-1">Description</label><input type="text" className="w-full p-2 border border-slate-300 rounded-md text-sm" value={budgetData.description} onChange={(e) => onChange('description', e.target.value)} placeholder="FOB/CMT/BAHAN" /></div>
+                             </div>
+                             <div className="border-t border-slate-200 my-2 pt-2"></div>
+                             <div><label className="block text-xs font-medium text-slate-500 mb-1">Brand</label><select className="w-full p-2 border border-slate-300 rounded-md bg-white text-sm" value={budgetData.brand} onChange={(e) => onChange('brand', e.target.value)}><option value="">-- Select --</option>{BUDGET_BRANDS.map(b => <option key={b} value={b}>{b}</option>)}</select></div>
+                             <div><label className="block text-xs font-medium text-slate-500 mb-1">Series</label><select className="w-full p-2 border border-slate-300 rounded-md bg-white text-sm" value={budgetData.series} onChange={(e) => onChange('series', e.target.value)}><option value="">-- Select --</option>{SERIES_CONFIG.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select></div>
+                             <div><label className="block text-xs font-medium text-slate-500 mb-1">Vendor</label><input type="text" className="w-full p-2 border border-slate-300 rounded-md text-sm" value={budgetData.vendor} onChange={(e) => onChange('vendor', e.target.value)} /></div>
+                             <div><label className="block text-xs font-medium text-slate-500 mb-1">Total Amount</label><input type="number" className="w-full p-2 border border-slate-300 rounded-md text-sm" value={budgetData.totalAmount} onChange={(e) => onChange('totalAmount', e.target.value)} /></div>
+                             <div><label className="block text-xs font-medium text-slate-500 mb-1">TOP (%)</label><input type="number" className="w-full p-2 border border-slate-300 rounded-md text-sm" value={budgetData.top} onChange={(e) => onChange('top', e.target.value)} /></div>
+                             <div><label className="block text-xs font-medium text-slate-500 mb-1">Lead Time (Days)</label><input type="number" className="w-full p-2 border border-slate-300 rounded-md text-sm" value={budgetData.leadTime} onChange={(e) => onChange('leadTime', e.target.value)} /></div>
+                             <div><label className="block text-xs font-medium text-slate-500 mb-1">Payment Term (Days)</label><input type="number" className="w-full p-2 border border-slate-300 rounded-md text-sm" value={budgetData.paymentTerm} onChange={(e) => onChange('paymentTerm', e.target.value)} /></div>
+                        </div>
+                        <div className="flex justify-end gap-3 mt-6">
+                            <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Batal</button>
+                            <button onClick={onSave} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors">Simpan</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- MAIN APP COMPONENT ---
+        function App() {
+            const [isClient, setIsClient] = useState(false);
+            const [currentTime, setCurrentTime] = useState(new Date());
+
+            // Modal States
+            const [modalConfig, setModalConfig] = useState({ isOpen: false, message: '', onConfirm: null });
+            const [editBudgetConfig, setEditBudgetConfig] = useState({ isOpen: false, data: null });
+
+            // Budgeting States
+            const [budgetList, setBudgetList] = useState([]);
+            const [isDataLoaded, setIsDataLoaded] = useState(false);
+            const [budgetForm, setBudgetForm] = useState({ brand: '', seriesId: '', vendor: '', article: '', description: '', customDate: '', poNumber: '', totalAmount: '', top: 0, leadTime: '', paymentTerm: '' });
+            const [dpFilterMonth, setDpFilterMonth] = useState(""); 
+            const [repaymentFilterMonth, setRepaymentFilterMonth] = useState("");
+
+            useEffect(() => {
+                setIsClient(true);
+                const timer = setInterval(() => { setCurrentTime(new Date()); }, 1000);
+
+                // Load Data
+                const savedBudget = localStorage.getItem('planner_budget_v3'); 
+                if (savedBudget) setBudgetList(JSON.parse(savedBudget));
+                setIsDataLoaded(true);
+                return () => clearInterval(timer);
+            }, []);
+
+            useEffect(() => { 
+                if (isDataLoaded) localStorage.setItem('planner_budget_v3', JSON.stringify(budgetList)); 
+            }, [budgetList, isDataLoaded]);
+
+            // Handlers
+            const showConfirm = useCallback((message, action) => setModalConfig({ isOpen: true, message, onConfirm: action }), []);
+            const handleConfirm = useCallback(() => { if (modalConfig.onConfirm) modalConfig.onConfirm(); setModalConfig({ isOpen: false, message: '', onConfirm: null }); }, [modalConfig]);
+            const handleCancel = useCallback(() => setModalConfig({ isOpen: false, message: '', onConfirm: null }), []);
+
+            const resetBudgetingData = () => { 
+                setBudgetList([]); 
+                setBudgetForm({ brand: '', seriesId: '', vendor: '', article: '', description: '', customDate: '', poNumber: '', totalAmount: '', top: 0, leadTime: '', paymentTerm: '' }); 
+            };
+            const confirmResetBudget = () => showConfirm("Reset semua data budgeting?", resetBudgetingData);
+
+            const dpNominal = useMemo(() => (parseFloat(budgetForm.totalAmount) || 0) * (parseInt(budgetForm.top) || 0) / 100, [budgetForm.totalAmount, budgetForm.top]);
+            const settlementNominal = useMemo(() => (parseFloat(budgetForm.totalAmount) || 0) - dpNominal, [budgetForm.totalAmount, dpNominal]);
+
+            // CSV Export Helpers
+            const handleExportBudget = () => {
+                if (budgetList.length === 0) return;
+                const csvData = budgetList.map(item => ({
+                    "Status": item.paymentStatus,
+                    "No PO": item.poNumber || '-',
+                    "Date": item.date,
+                    "Series": item.series || item.seriesId,
+                    "Vendor": item.vendor,
+                    "Article": item.article,
+                    "Description": item.description,
+                    "Total Amount": item.totalAmount,
+                    "TOP (%)": item.top,
+                    "Lead Time": item.leadTime,
+                    "Payment Term": item.paymentTerm,
+                    "Jadwal DP": item.dpDate,
+                    "Nominal DP": item.dpNominal,
+                    "Jadwal Pelunasan": item.repaymentDate,
+                    "Nominal Pelunasan": item.settlementNominal
+                }));
+                downloadTableAsCSV(csvData, `Budgeting_Export_${new Date().toISOString().slice(0,10)}.csv`);
+            };
+
+            const uniqueDpMonths = useMemo(() => { const s = new Set(); budgetList.forEach(i => i.dpDate && i.dpDate !== '-' && s.add(i.dpDate.substring(0, 7))); return Array.from(s).sort(); }, [budgetList]);
+            const uniqueRepaymentMonths = useMemo(() => { const s = new Set(); budgetList.forEach(i => i.repaymentDate && i.repaymentDate !== '-' && s.add(i.repaymentDate.substring(0, 7))); return Array.from(s).sort(); }, [budgetList]);
+            const filteredBudgetList = useMemo(() => budgetList.filter(i => (!dpFilterMonth || i.dpDate?.startsWith(dpFilterMonth)) && (!repaymentFilterMonth || i.repaymentDate?.startsWith(repaymentFilterMonth))), [budgetList, dpFilterMonth, repaymentFilterMonth]);
+
+            const budgetStats = useMemo(() => {
+                let planning = 0, paid = 0, outstanding = 0; const today = new Date();
+                filteredBudgetList.forEach(i => {
+                    if (i.paymentStatus === 'fully_paid') paid += i.totalAmount;
+                    else if (i.paymentStatus === 'dp_paid') { planning += i.settlementNominal; paid += i.dpNominal; }
+                    else planning += i.totalAmount;
+                    
+                    const dp = i.dpDate && i.dpDate !== '-' ? new Date(i.dpDate) : null;
+                    const rep = i.repaymentDate && i.repaymentDate !== '-' ? new Date(i.repaymentDate) : null;
+                    if (i.paymentStatus === 'unpaid') { if (dp && today > dp) outstanding += i.dpNominal; if (rep && today > rep) outstanding += i.settlementNominal; }
+                    else if (i.paymentStatus === 'dp_paid' && rep && today > rep) outstanding += i.settlementNominal;
+                });
+                return { planning, paid, outstanding };
+            }, [filteredBudgetList]);
+
+            const handleSaveBudget = () => {
+                if (!budgetForm.vendor) return;
+                
+                const baseDate = budgetForm.customDate || new Date().toISOString().split('T')[0];
+                const lt = parseInt(budgetForm.leadTime) || 0;
+                const pt = parseInt(budgetForm.paymentTerm) || 0;
+                
+                const baseCalcDate = subtractDays(baseDate, 14);
+                
+                const dpD = subtractDays(baseCalcDate, lt);
+                const repD = addDays(baseCalcDate, pt);
+                
+                setBudgetList([{ id: Date.now(), ...budgetForm, totalAmount: parseFloat(budgetForm.totalAmount), dpNominal, settlementNominal, dpDate: dpD, repaymentDate: repD, date: baseDate, paymentStatus: 'unpaid' }, ...budgetList]);
+                setBudgetForm({ brand: '', seriesId: '', vendor: '', article: '', description: '', customDate: '', poNumber: '', totalAmount: '', top: 0, leadTime: '', paymentTerm: '' });
+            };
+
+            // --- Edit Budget Handlers ---
+            const openEditBudget = useCallback((id) => {
+                const item = budgetList.find(b => b.id === id);
+                if (item) setEditBudgetConfig({ isOpen: true, data: { ...item } });
+            }, [budgetList]);
+
+            const closeEditBudget = useCallback(() => setEditBudgetConfig({ isOpen: false, data: null }), []);
+
+            const handleEditBudgetFormChange = useCallback((field, value) => {
+                setEditBudgetConfig(prev => ({ ...prev, data: { ...prev.data, [field]: value } }));
+            }, []);
+
+            const saveEditBudget = useCallback(() => {
+                const { data: item } = editBudgetConfig;
+                if (!item) return;
+
+                const total = parseFloat(item.totalAmount) || 0;
+                const top = parseInt(item.top) || 0;
+                const lt = parseInt(item.leadTime) || 0;
+                const pt = parseInt(item.paymentTerm) || 0;
+                
+                const dp = total * (top / 100);
+                const settlement = total - dp;
+                
+                const baseDate = item.date || new Date().toISOString().split('T')[0];
+                const baseCalcDate = subtractDays(baseDate, 14);
+                
+                const dpD = subtractDays(baseCalcDate, lt);
+                const repD = addDays(baseCalcDate, pt);
+
+                const updatedItem = {
+                    ...item,
+                    totalAmount: total,
+                    top: top,
+                    leadTime: lt,
+                    paymentTerm: pt,
+                    dpNominal: dp,
+                    settlementNominal: settlement,
+                    dpDate: dpD,
+                    repaymentDate: repD
+                };
+
+                const newList = budgetList.map(b => b.id === updatedItem.id ? updatedItem : b);
+                setBudgetList(newList);
+                closeEditBudget();
+            }, [budgetList, editBudgetConfig, closeEditBudget]);
+
+
+            const handleCycleStatus = (id) => {
+                setBudgetList(budgetList.map(item => {
+                    if (item.id === id) {
+                        if (item.paymentStatus === 'unpaid') return { ...item, paymentStatus: 'dp_paid' };
+                        if (item.paymentStatus === 'dp_paid') return { ...item, paymentStatus: 'fully_paid' };
+                        return { ...item, paymentStatus: 'unpaid' };
+                    }
+                    return item;
+                }));
+            };
+
+            const renderStatusBadge = (status) => {
+                switch (status) {
+                    case 'fully_paid': return <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-[10px] font-bold uppercase border border-emerald-200">Lunas</span>;
+                    case 'dp_paid': return <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-[10px] font-bold uppercase border border-blue-200">Sudah DP</span>;
+                    default: return <span className="bg-slate-100 text-slate-500 px-2 py-1 rounded text-[10px] font-bold uppercase border border-slate-200">Belum</span>;
+                }
+            };
+
+            const handleDeleteBudget = (id) => {
+                setBudgetList(budgetList.filter(item => item.id !== id));
+            };
+
+            if (!isClient) return null;
+
+            return (
+                <div className="min-h-screen bg-slate-50 font-sans text-slate-800 pb-20 relative">
+                    <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+                        <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex justify-between items-center h-16">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-slate-900 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-md tracking-tight border border-slate-700">
+                                        WE
+                                    </div>
+                                    <div>
+                                        <h1 className="text-lg font-bold tracking-tight text-slate-900 leading-none">WORLDWHITE ENTERPRISE</h1>
+                                        <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mt-0.5">BUDGETING SYSTEM 2027</p>
+                                    </div>
+                                </div>
+                                <div className="hidden md:flex items-center gap-2 text-sm text-slate-500 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
+                                    <span className="font-mono font-medium">{currentTime.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} {currentTime.toLocaleTimeString('id-ID')}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    <main className="max-w-[1900px] mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between"><div><p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Budget Planning</p><p className="text-2xl font-bold text-slate-800 mt-1">{formatRupiah(budgetStats.planning)}</p></div><div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><Icons.Wallet size={24}/></div></div>
+                            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between"><div><p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Paid Amount</p><p className="text-2xl font-bold text-emerald-600 mt-1">{formatRupiah(budgetStats.paid)}</p></div><div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><Icons.CheckCircle size={24}/></div></div>
+                            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between"><div><p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Outstanding</p><p className="text-2xl font-bold text-rose-600 mt-1">{formatRupiah(budgetStats.outstanding)}</p></div><div className="p-3 bg-rose-50 text-rose-600 rounded-xl"><Icons.AlertOctagon size={24}/></div></div>
+                        </div>
+
+                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-8">
+                            <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+                                <div className="flex items-center gap-2"><Icons.Wallet className="text-slate-600" size={20}/><h3 className="font-bold text-slate-800">Budgeting Calculator</h3></div>
+                                <div className="flex gap-2">
+                                    <button onClick={handleExportBudget} className="px-3 py-1 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 flex items-center gap-1 text-xs font-medium"><Icons.Download size={12}/> Export CSV</button>
+                                    <button onClick={confirmResetBudget} className="px-3 py-1 bg-slate-100 text-slate-500 rounded-md hover:bg-slate-200 text-xs font-medium">Reset</button>
+                                </div>
+                            </div>
+                            <div className="p-8">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div className="space-y-4">
+                                        <div><label className="block text-sm font-medium text-slate-700 mb-1">No. PO</label><input type="text" className="w-full p-2 border border-slate-300 rounded-md" value={budgetForm.poNumber} onChange={(e) => setBudgetForm({...budgetForm, poNumber: e.target.value})} placeholder="Input No. PO" /></div>
+                                        <div><label className="block text-sm font-medium text-slate-700 mb-1">Brand</label><select className="w-full p-2 border border-slate-300 rounded-md bg-white" value={budgetForm.brand} onChange={(e) => setBudgetForm({...budgetForm, brand: e.target.value})}><option value="">-- Select --</option>{BUDGET_BRANDS.map(b => <option key={b} value={b}>{b}</option>)}</select></div>
+                                        <div><label className="block text-sm font-medium text-slate-700 mb-1">Series</label><select className="w-full p-2 border border-slate-300 rounded-md bg-white" value={budgetForm.seriesId} onChange={(e) => setBudgetForm({...budgetForm, seriesId: e.target.value})}><option value="">-- Select --</option>{SERIES_CONFIG.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}</select></div>
+                                        <div><label className="block text-sm font-medium text-slate-700 mb-1">Article</label><input type="text" className="w-full p-2 border border-slate-300 rounded-md" value={budgetForm.article} onChange={(e) => setBudgetForm({...budgetForm, article: e.target.value})} placeholder="Article Name" /></div>
+                                        <div><label className="block text-sm font-medium text-slate-700 mb-1">Description</label><input type="text" className="w-full p-2 border border-slate-300 rounded-md" value={budgetForm.description} onChange={(e) => setBudgetForm({...budgetForm, description: e.target.value})} placeholder="FOB/CMT/BAHAN" /></div>
+                                        <div><label className="block text-sm font-medium text-slate-700 mb-1">Vendor</label><input type="text" className="w-full p-2 border border-slate-300 rounded-md" value={budgetForm.vendor} onChange={(e) => setBudgetForm({...budgetForm, vendor: e.target.value})} /></div>
+                                        <div><label className="block text-sm font-medium text-slate-700 mb-1">Launching Date</label><input type="date" className="w-full p-2 border border-slate-300 rounded-md" value={budgetForm.customDate} onChange={(e) => setBudgetForm({...budgetForm, customDate: e.target.value})} /></div>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div><label className="block text-sm font-medium text-slate-700 mb-1">Total Amount</label><input type="number" className="w-full p-2 border border-slate-300 rounded-md" value={budgetForm.totalAmount} onChange={(e) => setBudgetForm({...budgetForm, totalAmount: e.target.value})} /></div>
+                                        <div><label className="block text-sm font-medium text-slate-700 mb-1">TOP (%)</label><div className="grid grid-cols-5 gap-2">{[0, 10, 20, 30, 40, 50, 60, 70, 80, 90].map(v => <label key={v} className={`cursor-pointer border rounded-md px-1 py-2 text-center text-xs ${budgetForm.top === v ? 'bg-blue-600 text-white' : 'bg-white'}`}><input type="radio" name="top" value={v} className="hidden" checked={budgetForm.top === v} onChange={() => setBudgetForm({...budgetForm, top: v})} />{v}%</label>)}</div></div>
+                                        <div><label className="block text-sm font-medium text-slate-700 mb-1">Lead Time</label><input type="number" className="w-full p-2 border border-slate-300 rounded-md" value={budgetForm.leadTime} onChange={(e) => setBudgetForm({...budgetForm, leadTime: e.target.value})} /></div>
+                                        <div><label className="block text-sm font-medium text-slate-700 mb-1">Payment Term</label><input type="number" className="w-full p-2 border border-slate-300 rounded-md" value={budgetForm.paymentTerm} onChange={(e) => setBudgetForm({...budgetForm, paymentTerm: e.target.value})} /></div>
+                                    </div>
+                                </div>
+                                <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-between items-center mt-6 rounded-lg">
+                                     <div className="flex gap-8">
+                                        <div><span className="block text-xs text-slate-500 font-medium uppercase">DP Nominal</span><span className="text-xl font-bold text-slate-900">{formatRupiah(dpNominal)}</span></div>
+                                        <div><span className="block text-xs text-slate-500 font-medium uppercase">Pelunasan</span><span className="text-xl font-bold text-emerald-600">{formatRupiah(settlementNominal)}</span></div>
+                                     </div>
+                                     <button onClick={handleSaveBudget} disabled={!budgetForm.vendor} className="bg-slate-900 text-white px-6 py-2 rounded-lg font-bold hover:bg-slate-800 disabled:opacity-50 flex items-center gap-2"><Icons.Save size={18}/> Save Entry</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                            <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center gap-2"><Icons.Coins className="text-slate-600" size={20}/><h3 className="font-bold text-slate-800">Records</h3></div>
+                            {budgetList.length === 0 ? <div className="p-12 text-center text-slate-400">No records.</div> : <div className="overflow-x-auto"><table className="w-full text-sm text-left min-w-[800px]"><thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                                <tr>
+                                    <th className="px-4 py-3 text-center w-[120px]">Status</th>
+                                    <th className="px-4 py-3 text-center">No. PO</th>
+                                    <th className="px-4 py-3 text-center">Brand</th>
+                                    <th className="px-4 py-3 text-center">Series</th>
+                                    <th className="px-4 py-3 text-center">Vendor</th>
+                                    <th className="px-4 py-3 text-center">Article</th>
+                                    <th className="px-4 py-3 text-center">Desc</th>
+                                    <th className="px-4 py-3 text-center">Launching Date</th>
+                                    <th className="px-4 py-3 text-center">Total</th>
+                                    <th className="px-4 py-3 text-center">TOP</th>
+                                    <th className="px-4 py-3 text-center">Lead Time</th>
+                                    <th className="px-4 py-3 text-center">Payment Term</th>
+                                    <th className="px-4 py-3 text-center bg-blue-50/50">
+                                        <div className="flex flex-col items-center gap-1">
+                                            <span>Jadwal DP</span>
+                                            <select className="text-[10px] border border-blue-200 rounded px-1" value={dpFilterMonth} onChange={(e) => setDpFilterMonth(e.target.value)}>
+                                                <option value="">All</option>
+                                                {uniqueDpMonths.map(m => <option key={m} value={m}>{new Date(m + "-01").toLocaleDateString('id-ID', {month: 'short', year: '2-digit'})}</option>)}
+                                            </select>
+                                        </div>
+                                    </th>
+                                    <th className="px-4 py-3 text-center text-blue-700 bg-blue-50/30">Nominal DP</th>
+                                    <th className="px-4 py-3 text-center bg-emerald-50/50">
+                                        <div className="flex flex-col items-center gap-1">
+                                            <span>Jadwal Pelunasan</span>
+                                            <select className="text-[10px] border border-emerald-200 rounded px-1" value={repaymentFilterMonth} onChange={(e) => setRepaymentFilterMonth(e.target.value)}>
+                                                <option value="">All</option>
+                                                {uniqueRepaymentMonths.map(m => <option key={m} value={m}>{new Date(m + "-01").toLocaleDateString('id-ID', {month: 'short', year: '2-digit'})}</option>)}
+                                            </select>
+                                        </div>
+                                    </th>
+                                    <th className="px-4 py-3 text-center text-emerald-700 bg-emerald-50/30">Nominal Pelunasan</th>
+                                    <th className="px-4 py-3 text-center">Action</th>
+                                </tr>
+                            </thead><tbody className="divide-y divide-slate-100">{filteredBudgetList.map(item => { 
+                                const today = new Date(); 
+                                const isDpOverdue = item.paymentStatus === 'unpaid' && item.dpDate && new Date(item.dpDate) < today; 
+                                const isRepaymentOverdue = item.paymentStatus !== 'fully_paid' && item.repaymentDate && new Date(item.repaymentDate) < today; 
+                                const displaySeries = item.series || item.seriesId;
+
+                                return (<tr key={item.id} className="hover:bg-slate-50">
+                                    <td className="px-4 py-3 text-center"><button onClick={() => handleCycleStatus(item.id)} className="focus:outline-none hover:scale-105 transition-transform">{renderStatusBadge(item.paymentStatus)}</button></td>
+                                    <td className="px-4 py-3 text-center text-slate-700 font-mono">{item.poNumber || '-'}</td>
+                                    <td className="px-4 py-3 text-center font-medium text-slate-800">{item.brand}</td>
+                                    <td className="px-4 py-3 text-center font-medium text-slate-800">{displaySeries}</td>
+                                    <td className="px-4 py-3 text-center font-medium text-slate-800">{item.vendor}</td>
+                                    <td className="px-4 py-3 text-center text-slate-600">{item.article}</td>
+                                    <td className="px-4 py-3 text-center text-slate-500 italic truncate max-w-[100px]">{item.description}</td>
+                                    <td className="px-4 py-3 text-center text-slate-500 text-xs">{item.date}</td>
+                                    <td className="px-4 py-3 text-center text-slate-600 font-bold">{formatRupiah(item.totalAmount)}</td>
+                                    <td className="px-4 py-3 text-center"><span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">{item.top}%</span></td>
+                                    <td className="px-4 py-3 text-center text-slate-600 text-xs">{item.leadTime}</td>
+                                    <td className="px-4 py-3 text-center text-slate-600 text-xs">{item.paymentTerm}</td>
+                                    <td className="px-4 py-3 text-center bg-blue-50/30 text-blue-700 font-medium text-xs">
+                                        <div className={`flex items-center justify-center gap-1 ${isDpOverdue ? 'text-rose-600 font-bold' : ''}`}>
+                                            {isDpOverdue && <Icons.WarningCircle size={12}/>}
+                                            {item.dpDate ? formatDate(item.dpDate) : '-'}
+                                        </div>
+                                    </td>
+                                    <td className="px-4 py-3 text-center font-bold text-blue-600 bg-blue-50/30">{formatRupiah(item.dpNominal)}</td>
+                                    <td className="px-4 py-3 text-center bg-emerald-50/30 text-emerald-700 font-medium text-xs">
+                                        <div className={`flex items-center justify-center gap-1 ${isRepaymentOverdue ? 'text-rose-600 font-bold' : ''}`}>
+                                            {isRepaymentOverdue && <Icons.WarningCircle size={12}/>}
+                                            {item.repaymentDate ? formatDate(item.repaymentDate) : '-'}
+                                        </div>
+                                    </td>
+                                    <td className="px-4 py-3 text-center font-bold text-emerald-600 bg-emerald-50/30">{formatRupiah(item.settlementNominal)}</td>
+                                    <td className="px-4 py-3 text-center">
+                                        <div className="flex items-center justify-center gap-2">
+                                            <button onClick={() => openEditBudget(item.id)} className="text-slate-400 hover:text-blue-600 transition-colors"><Icons.Edit size={16}/></button>
+                                            <button onClick={() => handleDeleteBudget(item.id)} className="text-rose-500 hover:text-rose-700"><Icons.Trash2 size={16}/></button>
+                                        </div>
+                                    </td>
+                                </tr>)})}</tbody></table></div>}
+                        </div>
+                    </main>
+
+                    <ConfirmationModal config={modalConfig} onConfirm={handleConfirm} onCancel={handleCancel} />
+                    <EditBudgetModal config={editBudgetConfig} onClose={closeEditBudget} onSave={saveEditBudget} onChange={handleEditBudgetFormChange} />
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
